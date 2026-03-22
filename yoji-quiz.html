@@ -182,7 +182,7 @@ function pickProblems(diff, total) {
         qtype:"select", color:"#065f46",
         title:"漢数字を入れて完成",
         word: displayWord,
-        read,
+        read: "？？？？",
         question:`空欄に漢数字を入れて四字熟語を完成させましょう。\n${hint}\n（意味のヒント：${meaning}）`,
         options: opts, answer: opts.indexOf(word),
         explanation:`正解：「${word}（${read}）」\n${meaning}`,
