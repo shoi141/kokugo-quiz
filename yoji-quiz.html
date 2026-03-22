@@ -169,8 +169,6 @@ function pickProblems(diff, total) {
 
   if (diff === "number" || diff === "mix") {
     KANJI_NUMBER.forEach(([word, read, hint, meaning]) => {
-      // 正解は熟語そのもの。選択肢は漢数字を変えた誤りを作る
-      const nums = word.match(/[一二三四五六七八九十百]/g) || [];
       const makeWrong = (w, shift) =>
         w.replace(/[一二三四五六七八九十百]/g, m => {
           const i = ALL_NUMS.indexOf(m);
@@ -178,9 +176,13 @@ function pickProblems(diff, total) {
         });
       const opts = shuffle([word, makeWrong(word,1), makeWrong(word,2), makeWrong(word,3)]);
       if(!opts.includes(word)) opts[0]=word;
+      // 大見出しは□で表示（答えを隠す）
+      const displayWord = word.replace(/[一二三四五六七八九十百]/g, "□");
       pool.push({
         qtype:"select", color:"#065f46",
-        title:"漢数字を入れて完成", word, read,
+        title:"漢数字を入れて完成",
+        word: displayWord,
+        read,
         question:`空欄に漢数字を入れて四字熟語を完成させましょう。\n${hint}\n（意味のヒント：${meaning}）`,
         options: opts, answer: opts.indexOf(word),
         explanation:`正解：「${word}（${read}）」\n${meaning}`,
@@ -189,11 +191,24 @@ function pickProblems(diff, total) {
   }
 
   if (diff === "goji" || diff === "mix") {
+    // 誤字訂正用の紛らわしい誤り選択肢
+    const gojiWrongsMap = {
+      "温故知新": ["温古知新","温故知心","温古知心"],
+      "意気消沈": ["意気消千","意気小沈","意気消深"],
+      "心機一転": ["心気一転","心機一点","心気一点"],
+      "前代未聞": ["前代未問","前代末聞","前代未文"],
+      "諸行無常": ["諸行無情","諸行無情","諸行無状"],
+      "異口同音": ["異句同音","異口同意","異句同意"],
+      "一石二鳥": ["一石二長","一岩二鳥","一石三鳥"],
+      "竜頭蛇尾": ["竜頭馬尾","竜頭蛇体","竜首蛇尾"],
+    };
     GOJI_CORRECTION.forEach(([wrong, read, correct, change, exp]) => {
-      const opts = shuffle([correct, wrong,
-        correct.split("").map((c,i)=>i===1?"X":c).join(""),
-        correct.split("").map((c,i)=>i===3?"Y":c).join(""),
-      ]).slice(0,4);
+      const wrongs = gojiWrongsMap[correct] || [wrong,
+        correct.split("").map((ch,i)=>i===1?"古":ch).join(""),
+        correct.split("").map((ch,i)=>i===2?"大":ch).join(""),
+      ];
+      const candidates = [correct, ...wrongs].slice(0,4);
+      const opts = shuffle(candidates);
       if(!opts.includes(correct)) opts[0]=correct;
       pool.push({
         qtype:"select", color:"#991b1b",

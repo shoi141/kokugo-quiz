@@ -158,11 +158,13 @@ function pickProblems(diff, total) {
       const wrongs = all.filter(x=>x!==correct);
       const opts = shuffle([correct, ...wrongs]);
       const word = blank.replace("__", correct);
+      const displayWord = blank.replace("__", "□");
       pool.push({
         qtype:"select", color:"#0891b2",
         title:`打ち消し語を入れよう`,
-        word, read,
-        question:`「${blank.replace("__","□")}（${read}）」の□に入る打ち消しの漢字はどれですか？`,
+        word: displayWord,
+        read,
+        question:`「${displayWord}（${read}）」の□に入る打ち消しの漢字はどれですか？`,
         options: opts,
         answer: opts.indexOf(correct),
         explanation:`正解：「${word}」\n${exp}`,
