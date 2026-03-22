@@ -8,7 +8,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<script src="rika-common.js"></script>
+<script>
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function randomStars(n){return Array.from({length:n},()=>["⭐","🌟","✨"][randInt(0,2)]).join(" ");}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+</script>
 <style>
   body { background: #fdf2f8; }
   .rika-root {
@@ -182,35 +186,26 @@ function getProblems(diff) {
     }));
   }
   if (diff === "imi") {
-    return PROBLEMS_MEANING.map(([word, read, correct, wrongs]) => ({
-      qtype: "select", diff: "imi",
-      title: `意味：${word}`,
-      question: `「${word}（${read}）」の意味はどれですか？`,
-      options: shuffle([correct, ...wrongs]),
-      answer: null, // 後でshuffleされた位置を使う
-      _correct: correct,
-      explanation: `「${word}」の意味：${correct}`,
-      color: "#0369a1",
-    }));
+    return PROBLEMS_MEANING.map(([word, read, correct, wrongs]) => {
+      const opts = shuffle([correct, ...wrongs]);
+      return {
+        qtype: "select", diff: "imi",
+        title: `意味：${word}`,
+        question: `「${word}（${read}）」の意味はどれですか？`,
+        options: opts,
+        answer: opts.indexOf(correct),
+        explanation: `「${word}」の意味：${correct}`,
+        color: "#0369a1",
+      };
+    });
   }
   // mix
   return [...getProblems("kosei"), ...getProblems("imi")];
 }
 
-function shuffle(arr) {
-  const a = [...arr];
-  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
-  return a;
-}
 
 function pickProblems(diff, total) {
-  const pool = getProblems(diff).map(p => {
-    if(p._correct !== undefined) {
-      const opts = shuffle([p._correct, ...PROBLEMS_MEANING.find(m=>m[0]===p.title.replace("意味：",""))?.[3] || []]);
-      return { ...p, options: opts, answer: opts.indexOf(p._correct) };
-    }
-    return p;
-  });
+  const pool = getProblems(diff);
   const result = [];
   const used = new Set();
   while(result.length < total) {
