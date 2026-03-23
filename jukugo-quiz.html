@@ -317,7 +317,9 @@ function SelectAnswer({ problem, checked, userAnswer, onAnswer }) {
 
 // ─── App ──────────────────────────────────────────────────
 function App() {
+  const QUIZ_KEY = "jukugo";
   const [mode, setMode]       = useState("setup");
+  const [reviewBank,setReviewBank] = useState([]);
   const [diff, setDiff]       = useState("mix");
   const [totalQ, setTotalQ]   = useState(10);
   const [problems, setProblems] = useState([]);
@@ -332,7 +334,24 @@ function App() {
 
   useEffect(() => {
     try { const s=localStorage.getItem(STORAGE_KEY); if(s) setBest(parseInt(s)||0); } catch(_) {}
+    setReviewBank(JSON.parse(localStorage.getItem('rv_jukugo')||'[]'));
+    setReviewBank(JSON.parse(localStorage.getItem('rv_jukugo')||'[]'));
   }, []);
+
+  const startReview = () => {
+    const bank = JSON.parse(localStorage.getItem('rv_jukugo')||'[]');
+    setReviewBank(bank);
+    if(bank.length === 0){ setMode("setup"); return; }
+    const reshuffled = bank.map(p => {
+      const correctOpt = p.options[p.answer];
+      const opts = shuffle([...p.options]);
+      return {...p, options: opts, answer: opts.indexOf(correctOpt)};
+    });
+    setProblems(reshuffled);
+    setCurrent(0); setScore(0); setStreak(0);
+    setChecked(false); setUserAnswer(null); setCeleb(false);
+    setMode("review");
+  };
   const saveBest = v => { try { localStorage.setItem(STORAGE_KEY, String(v)); } catch(_) {} };
 
   const startQuiz = () => {
@@ -353,7 +372,9 @@ function App() {
       setScore(s=>s+1); const ns=streak+1; setStreak(ns);
       if(ns>best){ setBest(ns); saveBest(ns); }
       setCeleb(true); setTimeout(()=>setCeleb(false), 1800);
-    } else { setStreak(0); }
+      try{const _b=JSON.parse(localStorage.getItem('rv_jukugo')||'[]');const _id=(problem.title||'')+'|'+(problem.question||'');const _i=_b.findIndex(x=>x._id===_id);if(_i>=0){_b[_i].ok=(_b[_i].ok||0)+1;if(_b[_i].ok>=5)_b.splice(_i,1);localStorage.setItem('rv_jukugo',JSON.stringify(_b));}setReviewBank([..._b]);}catch(_e){}
+    } else { setStreak(0);
+      try{const _b=JSON.parse(localStorage.getItem('rv_jukugo')||'[]');const _id=(problem.title||'')+'|'+(problem.question||'');if(!_b.find(x=>x._id===_id)){const _s={...problem,_id,ok:0};_b.push(_s);localStorage.setItem('rv_jukugo',JSON.stringify(_b));}setReviewBank([..._b]);}catch(_e){} }
   };
 
   const nextQuestion = () => {
@@ -371,6 +392,24 @@ function App() {
         <div className="setup-emoji">📖</div>
         <h1 className="setup-title" style={{color:"#581c87"}}>二字熟語 国語クイズ</h1>
         <p className="setup-sub">組み立て・意味（中学入試レベル）</p>
+                <div style={{marginBottom:"16px"}}>
+          <button onClick={()=>{if(reviewBank.length>0)startReview();}}
+            style={{width:"100%",padding:"14px 16px",borderRadius:"14px",
+              cursor:reviewBank.length>0?"pointer":"default",
+              border:reviewBank.length>0?"2px solid #ef4444":"2px solid #e5e7eb",
+              background:reviewBank.length>0?"#fef2f2":"#f9fafb",
+              display:"flex",alignItems:"center",justifyContent:"space-between",
+              fontFamily:"inherit",opacity:reviewBank.length===0?0.45:1}}>
+            <div style={{textAlign:"left"}}>
+              <div style={{fontWeight:"900",fontSize:"15px",color:reviewBank.length>0?"#b91c1c":"#374151"}}>{"📚 復習モード"}</div>
+              {reviewBank.length>0&&<div style={{fontSize:"11px",color:"#ef4444",marginTop:"2px"}}>{"タップして今すぐ開始！"}</div>}
+            </div>
+            <span style={{background:reviewBank.length>0?"#ef4444":"#d1d5db",color:"#fff",borderRadius:"99px",padding:"4px 12px",fontSize:"13px",fontWeight:"bold"}}>
+              {reviewBank.length>0?reviewBank.length+"問":"なし"}
+            </span>
+          </button>
+          {reviewBank.length===0&&<div style={{fontSize:"11px",color:"#9ca3af",textAlign:"center",marginTop:"4px"}}>{"間違えた問題が溜まるとここで復習できます"}</div>}
+        </div>
         {best>0&&<div className="best-badge" style={{background:"#f3e8ff",border:"1.5px solid #d8b4fe",color:"#581c87"}}>🏆 最高連続記録：<strong>{best}問</strong></div>}
         <div className="qcount-section">分野を選ぶ</div>
         <div className="diff-btn-row">
@@ -409,6 +448,20 @@ function App() {
     </div>
   );
 
+
+  if(mode === "graduated") return (
+    <div className="setup-wrap" style={{background:"#f0fdf4"}}>
+      <div className="setup-card">
+        <div className="setup-emoji">{"🎓"}</div>
+        <h2 className="setup-title" style={{color:"#166534"}}>{"復習バンク卒業！"}</h2>
+        <p style={{fontSize:"14px",color:"#16a34a",marginBottom:"16px",fontWeight:"bold"}}>{"すべての問題を5回正解しました！"}</p>
+        <div style={{background:"#dcfce7",borderRadius:"14px",padding:"16px",marginBottom:"16px",fontSize:"13px",color:"#166534",lineHeight:"1.8"}}>{"🌟 間違えた問題をすべてマスターしました！"}</div>
+        <button className="start-btn"
+          style={{background:"linear-gradient(135deg,#4ade80,#22c55e)",color:"#fff",boxShadow:"0 4px 0 #16a34a"}}
+          onClick={()=>setMode("setup")}>{"もどる"}</button>
+      </div>
+    </div>
+  );
   if (mode === "result") {
     const pct = Math.round((score/problems.length)*100);
     return (
@@ -426,6 +479,12 @@ function App() {
           <div style={{display:"flex",gap:"8px",marginTop:"16px"}}>
             <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #581c87"}} onClick={startQuiz}>もう一度</button>
             <button className="start-btn" style={{background:"#868e96",color:"#fff",boxShadow:"0 4px 0 #495057"}} onClick={()=>setMode("setup")}>設定へ</button>
+          {reviewBank.length>0&&(
+            <button className="start-btn"
+              style={{background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",
+                boxShadow:"0 4px 0 #991b1b",marginTop:"8px",width:"100%"}}
+              onClick={startReview}>{"続けて復習する 📚 ("}{reviewBank.length}{"問)"}</button>
+          )}
           </div>
         </div>
       </div>
