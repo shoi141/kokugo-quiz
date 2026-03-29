@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>自立語クイズ</title>
+<link rel="stylesheet" href="common.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  body { background: #f0fdf4; }
+  .rika-root {
+    min-height: 100vh; background: #f0fdf4;
+    padding: 12px; max-width: 480px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .select-grid { display: flex; flex-direction: column; gap: 8px; }
+  .select-btn {
+    width: 100%; padding: 13px 16px;
+    border: 2px solid #e5e7eb; border-radius: 14px;
+    background: #fff; cursor: pointer;
+    font-size: 14px; font-weight: bold; text-align: left;
+    font-family: inherit;
+  }
+  .select-btn.show-correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
+  .select-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; opacity: 0.7; }
+  .explanation-card {
+    background: #fef3c7; border: 1.5px solid #f59e0b;
+    border-radius: 12px; padding: 12px 14px;
+    font-size: 13px; color: #78350f; line-height: 1.9;
+  }
+  .diff-btn-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .diff-card-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 14px;
+    cursor: pointer; text-align: left; border: 2px solid transparent;
+    font-family: inherit; background: #f9fafb;
+  }
+  .diff-card-btn .diff-name { font-weight: 900; font-size: 15px; }
+  .diff-card-btn .diff-desc { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .word-display {
+    font-size: 26px; font-weight: 900; text-align: center;
+    padding: 10px 0 4px; letter-spacing: 0.05em; color: #1f2937;
+  }
+  .sentence-display {
+    font-size: 16px; font-weight: bold; text-align: center;
+    padding: 10px 0 4px; line-height: 1.9; color: #1f2937;
+  }
+  .underline { text-decoration: underline; text-underline-offset: 4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function randomStars(n){return Array.from({length:n},()=>["⭐","🌟","✨"][randInt(0,2)]).join(" ");}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+// ── 問題バンク ──────────────────────────────────────────────
+
+// 品詞の識別 [語, 品詞, 解説, 文例]
+const HINSHI_BANK = [
+  // 動詞
+  ["走る","動詞","動作・作用を表し、「〜ない」に続く形がある（走ら・ない）。","彼は毎朝公園を走る。"],
+  ["食べる","動詞","動作・作用を表す自立語。下一段活用。","弟がご飯を食べる。"],
+  ["来る","動詞","カ行変格活用の動詞。「来ない・来ます・来る・来れば・来い」と変化する。","友達が家に来る。"],
+  ["する","動詞","サ行変格活用の動詞。「しない・します・する・すれば・しろ」と変化する。","勉強をする。"],
+  ["書く","動詞","五段活用の動詞。語尾が「か・き・く・け・こ」と変化する。","手紙を書く。"],
+  ["見る","動詞","上一段活用の動詞。語尾が「み・み・みる・みる・みれ・みろ」と変化する。","星を見る。"],
+  ["起きる","動詞","上一段活用の動詞。「起き・ない」など語幹の後が「い」で活用。","早く起きる。"],
+  ["泳ぐ","動詞","五段活用の動詞。","海で泳ぐ。"],
+  ["歩く","動詞","五段活用の動詞。","公園を歩く。"],
+  ["笑う","動詞","五段活用の動詞。","みんなが笑う。"],
+  // 形容詞
+  ["美しい","形容詞","様子・状態を表す。言い切りの形が「い」で終わる。","桜の花が美しい。"],
+  ["楽しい","形容詞","言い切りの形が「い」で終わり、「楽しく・楽しかった」と活用する。","遠足が楽しい。"],
+  ["寒い","形容詞","気温・状態を表す。「寒く・寒かった・寒ければ」と活用する。","今日は寒い。"],
+  ["難しい","形容詞","言い切りの形が「い」で終わる形容詞。","この問題は難しい。"],
+  ["明るい","形容詞","「明るく・明るかった」と活用する形容詞。","この部屋は明るい。"],
+  ["白い","形容詞","色や状態を表す。言い切りの形が「い」で終わる。","雪が白い。"],
+  // 形容動詞
+  ["静かだ","形容動詞","様子・状態を表す。言い切りの形が「だ」で終わり、「静かで・静かな」と活用する。","図書館は静かだ。"],
+  ["有名だ","形容動詞","言い切りの形が「だ」で終わる形容動詞。","あの山は有名だ。"],
+  ["元気だ","形容動詞","「元気で・元気な・元気に」と活用する形容動詞。","妹は元気だ。"],
+  ["丁寧だ","形容動詞","言い切りの形が「だ」で終わる形容動詞。","彼は丁寧だ。"],
+  ["複雑だ","形容動詞","「複雑で・複雑な・複雑に」と活用する。","この図は複雑だ。"],
+  ["必要だ","形容動詞","言い切りの形が「だ」で終わる形容動詞。","練習は必要だ。"],
+  // 名詞
+  ["山","名詞","物・事・人を表す自立語。活用せず、主語になることができる。","山が高い。"],
+  ["友達","名詞","人を表す名詞。助詞「が・は・を」などをつけて主語・目的語になる。","友達と遊ぶ。"],
+  ["勉強","名詞","事柄を表す名詞。「勉強する」のように動詞としても使われる。","毎日勉強する。"],
+  ["春","名詞","季節を表す名詞。","春が来た。"],
+  ["東京","名詞","地名を表す固有名詞。","東京に行く。"],
+  ["三","名詞","数を表す数詞（名詞の一種）。","三人が集まる。"],
+  // 副詞
+  ["とても","副詞","主に用言（形容詞・形容動詞）を修飾する副詞。活用しない。","今日はとても暑い。"],
+  ["ゆっくり","副詞","動詞や形容詞を修飾する副詞。「ゆっくり歩く」のように使う。","ゆっくり歩く。"],
+  ["もし","副詞","「もし〜なら」のように仮定を表す副詞。","もし雨が降れば中止だ。"],
+  ["決して","副詞","「決して〜ない」のように打ち消しと呼応する副詞。","決して忘れない。"],
+  ["たいへん","副詞","程度を表す副詞。用言を修飾する。","たいへん難しい問題だ。"],
+  ["少し","副詞","程度・数量を表す副詞。","少し待ってください。"],
+  // 連体詞
+  ["この","連体詞","体言（名詞）のみを修飾する。活用せず、単独で述語にもなれない。","この本が好きだ。"],
+  ["その","連体詞","「その＋名詞」の形で体言を修飾する。","その問題は難しい。"],
+  ["ある","連体詞","「ある日・ある人」のように名詞の前に置いて修飾する連体詞。","ある日のことだ。"],
+  ["大きな","連体詞","「大きな＋名詞」のみに使う。「大きだ」とは言えないので形容動詞ではない。","大きな木がある。"],
+  ["小さな","連体詞","「小さな＋名詞」のみに使う連体詞。","小さな声で話す。"],
+  // 接続詞
+  ["しかし","接続詞","前後の文を「逆接」でつなぐ接続詞。","勉強した。しかし、合格できなかった。"],
+  ["そして","接続詞","前後の文を「順接・添加」でつなぐ接続詞。","公園に行った。そして、遊んだ。"],
+  ["だから","接続詞","原因・理由を示して結果につなぐ「順接」の接続詞。","努力した。だから、合格した。"],
+  ["または","接続詞","選択を示す接続詞。","バスまたは電車で行く。"],
+  ["なぜなら","接続詞","理由・原因を説明する接続詞。","休んだ。なぜなら、体調が悪かったからだ。"],
+  // 感動詞
+  ["ああ","感動詞","感動・驚きを表す感動詞。文の中で独立して使われる。","ああ、きれいだ。"],
+  ["おい","感動詞","呼びかけを表す感動詞。","おい、待ってくれ。"],
+  ["はい","感動詞","応答を表す感動詞。","はい、わかりました。"],
+  ["いいえ","感動詞","否定の応答を表す感動詞。","いいえ、知りません。"],
+];
+
+// 品詞の全種類（選択肢）
+const ALL_HINSHI = ["動詞","形容詞","形容動詞","名詞","副詞","連体詞","接続詞","感動詞"];
+
+// 活用形の識別 [語+文脈, 活用形, 解説]
+const KATSUYOKEI_BANK = [
+  ["書か（ない）","未然形","「〜ない」「〜う・よう」に続く形。語尾が「か」→未然形。"],
+  ["食べ（ます）","連用形","「〜ます」「〜た」に続く形。動詞が名詞化するときも連用形。"],
+  ["走る（。）","終止形","文が言い切りで終わる形。辞書に載っている形。"],
+  ["見る（とき）","連体形","「〜とき」など体言（名詞）に続く形。"],
+  ["起きれ（ば）","仮定形","「〜ば」に続く形。"],
+  ["来い（。）","命令形","命令の意味で文が終わる形。"],
+  ["飛ば（ない）","未然形","「〜ない」に続く→未然形。五段活用では語尾がア段になる。"],
+  ["着き（ます）","連用形","「〜ます」に続く→連用形。"],
+  ["遊ぶ（。）","終止形","言い切りの形→終止形。"],
+  ["読む（とき）","連体形","体言（名詞）「とき」に続く→連体形。"],
+  ["呼べ（ば）","仮定形","「〜ば」に続く→仮定形。"],
+  ["止まれ（。）","命令形","命令で文が終わる→命令形。"],
+  ["起き（た）","連用形","「〜た」に続く→連用形。"],
+  ["寝れ（ば）","仮定形","「〜ば」に続く→仮定形。"],
+  ["来（ない）","未然形","カ変動詞「来る」の未然形。「こ・ない」の「こ」が未然形。"],
+  ["し（ない）","未然形","サ変動詞「する」の未然形。「し・ない」の「し」が未然形。"],
+  ["降ら（ない）","未然形","「降る」の未然形。「〜ない」に続く形。"],
+  ["歩い（て）","連用形","「〜て」に続く→連用形（音便形）。"],
+  ["泳ぐ（とき）","連体形","体言に続く→連体形。"],
+  ["走れ（ば）","仮定形","「〜ば」に続く→仮定形。"],
+];
+
+const ALL_KATSUYOKEI = ["未然形","連用形","終止形","連体形","仮定形","命令形"];
+
+// 動詞の活用の種類 [動詞, 活用の種類, 解説]
+const KATSUYOTYPE_BANK = [
+  ["書く","五段活用","語尾が「か・き・く・く・け・け」とア〜エ段を含む5段で変化する。"],
+  ["起きる","上一段活用","語幹の後が「い」の段で統一されて変化する（起き・ない、起き・ます…）。"],
+  ["食べる","下一段活用","語幹の後が「え」の段で統一されて変化する（食べ・ない、食べ・ます…）。"],
+  ["来る","カ行変格活用","「来ない・来ます・来る・来る・来れば・来い」と特殊な変化をする。"],
+  ["する","サ行変格活用","「しない・します・する・する・すれば・しろ」と特殊な変化をする。"],
+  ["走る","五段活用","「走ら・走り・走る・走る・走れ・走れ」とア〜エ段を含む変化。"],
+  ["見る","上一段活用","「見・ない」「見・ます」のように語幹の後が常に「い」段。"],
+  ["泳ぐ","五段活用","「泳が・泳ぎ・泳ぐ・泳ぐ・泳げ・泳げ」と五段で変化する。"],
+  ["着る","上一段活用","「着・ない」「着・ます」のように「い」段で統一される。"],
+  ["寝る","下一段活用","「寝・ない」「寝・ます」のように「え」段で統一される。"],
+  ["話す","五段活用","「話さ・話し・話す・話す・話せ・話せ」と変化する。"],
+  ["感じる","上一段活用","「感じ・ない」のように「い」段で活用する（上一段）。"],
+  ["答える","下一段活用","「答え・ない」のように「え」段で活用する（下一段）。"],
+  ["飛ぶ","五段活用","「飛ば・飛び・飛ぶ・飛ぶ・飛べ・飛べ」と五段で変化。"],
+  ["降りる","上一段活用","「降り・ない」のように「い」段で統一される。"],
+  ["出る","下一段活用","「出・ない」のように「え」段で活用する。"],
+  ["読む","五段活用","「読ま・読み・読む・読む・読め・読め」と五段で変化。"],
+  ["受ける","下一段活用","「受け・ない」のように「え」段で活用する。"],
+  ["急ぐ","五段活用","「急が・急ぎ・急ぐ・急ぐ・急げ・急げ」と変化する。"],
+  ["借りる","上一段活用","「借り・ない」のように「い」段で統一される。"],
+];
+
+const ALL_KATSUYOTYPE = ["五段活用","上一段活用","下一段活用","カ行変格活用","サ行変格活用"];
+
+// 用言・体言の識別 [語, 種類, 解説]
+const TAIGEN_YOUGEN_BANK = [
+  ["喜ぶ","用言（動詞）","活用する自立語→用言。動詞は「喜ば・喜び・喜ぶ…」と活用する。"],
+  ["広い","用言（形容詞）","活用する自立語→用言。形容詞は「広く・広い・広ければ…」と活用する。"],
+  ["穏やかだ","用言（形容動詞）","活用する自立語→用言。「穏やかで・穏やかな・穏やかに…」と活用する。"],
+  ["花","体言（名詞）","活用しない自立語で主語になれる→体言（名詞）。"],
+  ["川","体言（名詞）","活用しない自立語で主語になれる→体言（名詞）。"],
+  ["急ぐ","用言（動詞）","活用する自立語→用言。「急が・急ぎ・急ぐ…」と変化する。"],
+  ["冷たい","用言（形容詞）","活用する自立語→用言。形容詞。「冷たく・冷たかった…」と活用。"],
+  ["大切だ","用言（形容動詞）","活用する自立語→用言。「大切で・大切な…」と活用する形容動詞。"],
+  ["学校","体言（名詞）","活用しない名詞→体言。助詞「が・を・に」などを伴う。"],
+  ["自由","体言（名詞）","活用しない自立語→体言。「自由が・自由を・自由に」のように使う。"],
+];
+
+const ALL_TAIGEN_YOUGEN = ["用言（動詞）","用言（形容詞）","用言（形容動詞）","体言（名詞）"];
+</script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const STORAGE_KEY = "jistugo_best_streak";
+const QUIZ_KEY = "jistugo";
+const Q_OPTIONS = [5, 10, 15, 20];
+const BTN = "linear-gradient(135deg,#10b981,#059669)";
+
+function pickProblems(diff, total) {
+  let pool = [];
+
+  if (diff === "hinshi" || diff === "mix") {
+    HINSHI_BANK.forEach(([word, ans, exp, sentence]) => {
+      const wrongs = shuffle(ALL_HINSHI.filter(h => h !== ans)).slice(0, 3);
+      const opts = shuffle([ans, ...wrongs]);
+      pool.push({
+        color:"#0369a1", title:"品詞の識別",
+        word, sentence,
+        question:`「${word}」の品詞はどれですか？`,
+        options: opts, answer: opts.indexOf(ans),
+        explanation:`「${word}」は【${ans}】\n${exp}\n例：${sentence}`,
+      });
+    });
+  }
+
+  if (diff === "katsuyokei" || diff === "mix") {
+    KATSUYOKEI_BANK.forEach(([wordCtx, ans, exp]) => {
+      const wrongs = shuffle(ALL_KATSUYOKEI.filter(k => k !== ans)).slice(0, 3);
+      const opts = shuffle([ans, ...wrongs]);
+      pool.push({
+        color:"#7c3aed", title:"活用形の識別",
+        word: wordCtx, sentence: null,
+        question:`「${wordCtx}」の活用形はどれですか？`,
+        options: opts, answer: opts.indexOf(ans),
+        explanation:`「${wordCtx}」は【${ans}】\n${exp}`,
+      });
+    });
+  }
+
+  if (diff === "katsuyotype" || diff === "mix") {
+    KATSUYOTYPE_BANK.forEach(([word, ans, exp]) => {
+      const wrongs = shuffle(ALL_KATSUYOTYPE.filter(k => k !== ans)).slice(0, 3);
+      const opts = shuffle([ans, ...wrongs]);
+      pool.push({
+        color:"#b45309", title:"活用の種類",
+        word, sentence: null,
+        question:`動詞「${word}」の活用の種類はどれですか？`,
+        options: opts, answer: opts.indexOf(ans),
+        explanation:`「${word}」は【${ans}】\n${exp}`,
+      });
+    });
+  }
+
+  if (diff === "taigen" || diff === "mix") {
+    TAIGEN_YOUGEN_BANK.forEach(([word, ans, exp]) => {
+      const wrongs = shuffle(ALL_TAIGEN_YOUGEN.filter(k => k !== ans)).slice(0, 3);
+      const opts = shuffle([ans, ...wrongs]);
+      pool.push({
+        color:"#065f46", title:"用言・体言の識別",
+        word, sentence: null,
+        question:`「${word}」は用言・体言のどちらですか？`,
+        options: opts, answer: opts.indexOf(ans),
+        explanation:`「${word}」は【${ans}】\n${exp}`,
+      });
+    });
+  }
+
+  const shuffled = shuffle(pool);
+  const result = [];
+  const used = new Set();
+  while (result.length < total) {
+    const idx = Math.floor(Math.random() * shuffled.length);
+    if (!used.has(idx) || shuffled.length < total) {
+      used.add(idx);
+      result.push({...shuffled[idx]});
+    }
+  }
+  return result;
+}
+
+function SelectAnswer({ problem, checked, userAnswer, onAnswer }) {
+  return (
+    <div className="select-grid">
+      {problem.options.map((opt, i) => {
+        let cls = "select-btn";
+        if (checked) {
+          if (i === problem.answer) cls += " show-correct";
+          else if (i === userAnswer) cls += " wrong";
+        }
+        return (
+          <button key={i} className={cls} onClick={() => !checked && onAnswer(i)}>
+            <span style={{color:"#6b7280",marginRight:"8px",fontWeight:"normal"}}>{"①②③④⑤"[i]}</span>
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function App() {
+  const [mode,setMode]         = useState("setup");
+  const [reviewBank,setReviewBank] = useState([]);
+  const [diff,setDiff]         = useState("mix");
+  const [totalQ,setTotalQ]     = useState(10);
+  const [problems,setProblems] = useState([]);
+  const [current,setCurrent]   = useState(0);
+  const [score,setScore]       = useState(0);
+  const [streak,setStreak]     = useState(0);
+  const [best,setBest]         = useState(0);
+  const [checked,setChecked]   = useState(false);
+  const [userAnswer,setUserAnswer] = useState(null);
+  const [celeb,setCeleb]       = useState(false);
+  const [isCorrect,setIsCorrect] = useState(false);
+
+  useEffect(() => {
+    try { const s=localStorage.getItem(STORAGE_KEY); if(s) setBest(parseInt(s)||0); } catch(_) {}
+    setReviewBank(JSON.parse(localStorage.getItem(QUIZ_KEY)||'[]'));
+  }, []);
+  const saveBest = v => { try { localStorage.setItem(STORAGE_KEY, String(v)); } catch(_) {} };
+
+  const startReview = () => {
+    const bank = JSON.parse(localStorage.getItem(QUIZ_KEY)||'[]');
+    setReviewBank(bank);
+    if (bank.length === 0) { setMode("setup"); return; }
+    const reshuffled = bank.map(p => {
+      const correctOpt = p.options[p.answer];
+      const opts = shuffle([...p.options]);
+      return {...p, options: opts, answer: opts.indexOf(correctOpt)};
+    });
+    setProblems(reshuffled);
+    setCurrent(0); setScore(0); setStreak(0);
+    setChecked(false); setUserAnswer(null); setCeleb(false);
+    setMode("review");
+  };
+
+  const startQuiz = () => {
+    setProblems(pickProblems(diff, totalQ));
+    setCurrent(0); setScore(0); setStreak(0);
+    setChecked(false); setUserAnswer(null); setCeleb(false);
+    setMode("quiz");
+  };
+
+  const problem = problems[current] || null;
+
+  const handleAnswer = ans => {
+    if (checked) return;
+    setUserAnswer(ans); setChecked(true);
+    const ok = ans === problem.answer;
+    setIsCorrect(ok);
+    if (ok) {
+      setScore(s => s+1); const ns = streak+1; setStreak(ns);
+      if (ns > best) { setBest(ns); saveBest(ns); }
+      setCeleb(true); setTimeout(() => setCeleb(false), 1800);
+      try {
+        const b = JSON.parse(localStorage.getItem(QUIZ_KEY)||'[]');
+        const id = (problem.title||'')+'|'+(problem.question||'');
+        const i = b.findIndex(x => x._id === id);
+        if (i >= 0) { b[i].ok = (b[i].ok||0)+1; if(b[i].ok >= 5) b.splice(i,1); localStorage.setItem(QUIZ_KEY, JSON.stringify(b)); }
+        setReviewBank([...b]);
+      } catch(_) {}
+    } else {
+      setStreak(0);
+      try {
+        const b = JSON.parse(localStorage.getItem(QUIZ_KEY)||'[]');
+        const id = (problem.title||'')+'|'+(problem.question||'');
+        if (!b.find(x => x._id === id)) { const s={...problem,_id:id,ok:0}; b.push(s); localStorage.setItem(QUIZ_KEY, JSON.stringify(b)); }
+        setReviewBank([...b]);
+      } catch(_) {}
+    }
+  };
+
+  const nextQuestion = () => {
+    const _end = current+1 >= problems.length;
+    if (_end && mode === "review") {
+      const b = JSON.parse(localStorage.getItem(QUIZ_KEY)||'[]');
+      setReviewBank([...b]);
+      if (b.length > 0) { startReview(); } else { setMode("graduated"); }
+      return;
+    }
+    if (_end) { setMode("result"); return; }
+    setCurrent(c => c+1);
+    setChecked(false); setUserAnswer(null); setCeleb(false);
+  };
+
+  const progress = problem ? (current / problems.length) * 100 : 0;
+
+  const DIFF_OPTIONS = [
+    {key:"hinshi",      emoji:"📝", name:"品詞の識別",      desc:"動詞・形容詞・名詞・副詞など8品詞を見分ける"},
+    {key:"katsuyokei",  emoji:"🔄", name:"活用形の識別",    desc:"未然形・連用形・終止形・連体形・仮定形・命令形"},
+    {key:"katsuyotype", emoji:"🏷️", name:"活用の種類",      desc:"五段・上一段・下一段・カ変・サ変"},
+    {key:"taigen",      emoji:"⚖️", name:"用言・体言の識別", desc:"活用するか・主語になれるかで見分ける"},
+    {key:"mix",         emoji:"⭐", name:"ミックス",         desc:"全タイプからランダム出題"},
+  ];
+
+  if (mode === "graduated") return (
+    <div className="setup-wrap" style={{background:"#f0fdf4"}}>
+      <div className="setup-card">
+        <div className="setup-emoji">{"🎓"}</div>
+        <h2 className="setup-title" style={{color:"#166534"}}>{"復習バンク卒業！"}</h2>
+        <p style={{fontSize:"14px",color:"#16a34a",marginBottom:"16px",fontWeight:"bold"}}>{"すべての問題を5回正解しました！"}</p>
+        <div style={{background:"#dcfce7",borderRadius:"14px",padding:"16px",marginBottom:"16px",fontSize:"13px",color:"#166534",lineHeight:"1.8"}}>{"🌟 間違えた問題をすべてマスターしました！"}</div>
+        <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #047857"}} onClick={()=>setMode("setup")}>{"もどる"}</button>
+      </div>
+    </div>
+  );
+
+  if (mode === "setup") return (
+    <div className="setup-wrap" style={{background:"#f0fdf4"}}>
+      <div className="setup-card">
+        <div style={{textAlign:"center",marginBottom:"12px",fontSize:"12px"}}>
+          <a href="https://shoi141.github.io/kokugo-quiz/" style={{color:"#adb5bd",textDecoration:"none"}}>← 国語トップ</a>
+          {"　|　"}
+          <a href="https://shoi141.github.io/quiz-portal/" style={{color:"#adb5bd",textDecoration:"none"}}>🏠 教科トップ</a>
+        </div>
+        <div className="setup-emoji">📖</div>
+        <h1 className="setup-title" style={{color:"#065f46"}}>自立語クイズ</h1>
+        <p className="setup-sub">品詞・活用形・活用の種類（中学入試レベル）</p>
+        <div style={{marginBottom:"16px"}}>
+          <button onClick={()=>{if(reviewBank.length>0)startReview();}}
+            style={{width:"100%",padding:"14px 16px",borderRadius:"14px",
+              cursor:reviewBank.length>0?"pointer":"default",
+              border:reviewBank.length>0?"2px solid #ef4444":"2px solid #e5e7eb",
+              background:reviewBank.length>0?"#fef2f2":"#f9fafb",
+              display:"flex",alignItems:"center",justifyContent:"space-between",
+              fontFamily:"inherit",opacity:reviewBank.length===0?0.45:1}}>
+            <div style={{textAlign:"left"}}>
+              <div style={{fontWeight:"900",fontSize:"15px",color:reviewBank.length>0?"#b91c1c":"#374151"}}>{"📚 復習モード"}</div>
+              {reviewBank.length>0&&<div style={{fontSize:"11px",color:"#ef4444",marginTop:"2px"}}>{"タップして今すぐ開始！"}</div>}
+            </div>
+            <span style={{background:reviewBank.length>0?"#ef4444":"#d1d5db",color:"#fff",borderRadius:"99px",padding:"4px 12px",fontSize:"13px",fontWeight:"bold"}}>
+              {reviewBank.length>0?reviewBank.length+"問":"なし"}
+            </span>
+          </button>
+          {reviewBank.length===0&&<div style={{fontSize:"11px",color:"#9ca3af",textAlign:"center",marginTop:"4px"}}>{"間違えた問題が溜まるとここで復習できます"}</div>}
+        </div>
+        {best>0&&<div className="best-badge" style={{background:"#d1fae5",border:"1.5px solid #34d399",color:"#065f46"}}>🏆 最高連続記録：<strong>{best}問</strong></div>}
+        <div className="qcount-section">分野を選ぶ</div>
+        <div className="diff-btn-row">
+          {DIFF_OPTIONS.map(d => (
+            <button key={d.key} className="diff-card-btn"
+              style={{background:diff===d.key?"#d1fae5":"#f9fafb",
+                      border:diff===d.key?"2px solid #10b981":"2px solid #e5e7eb",
+                      boxShadow:diff===d.key?"0 3px 0 #10b981":"none"}}
+              onClick={()=>setDiff(d.key)}>
+              <span style={{fontSize:"22px"}}>{d.emoji}</span>
+              <div>
+                <div className="diff-name" style={{color:diff===d.key?"#065f46":"#1f2937"}}>{d.name}</div>
+                <div className="diff-desc">{d.desc}</div>
+              </div>
+              {diff===d.key&&<span style={{marginLeft:"auto",fontSize:"18px"}}>✅</span>}
+            </button>
+          ))}
+        </div>
+        <div className="qcount-section">何問やる？</div>
+        <div className="qcount-grid">
+          {Q_OPTIONS.map(n => (
+            <button key={n} className="qcount-btn"
+              style={{border:totalQ===n?"2px solid #10b981":"2px solid #dee2e6",
+                      background:totalQ===n?"#10b981":"#f8f9fa",
+                      color:totalQ===n?"#fff":"#495057",
+                      boxShadow:totalQ===n?"0 3px 0 #047857":"none"}}
+              onClick={()=>setTotalQ(n)}>{n}問</button>
+          ))}
+        </div>
+        <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #047857"}} onClick={startQuiz}>スタート！ 🚀</button>
+      </div>
+    </div>
+  );
+
+  if (mode === "result") {
+    const pct = Math.round((score/problems.length)*100);
+    return (
+      <div className="setup-wrap" style={{background:"#f0fdf4"}}>
+        <div className="setup-card">
+          <div className="setup-emoji">{pct===100?"🏆":pct>=70?"🎉":"💪"}</div>
+          <h2 className="setup-title" style={{color:"#065f46"}}>おわり！</h2>
+          <p className="result-score">{problems.length}問中 <span className="result-big" style={{color:"#10b981"}}>{score}</span> 問正解</p>
+          <div className="pct-bar-bg" style={{background:"#d1fae5"}}><div className="pct-bar-fill" style={{background:BTN,width:`${pct}%`}}/></div>
+          <p className="pct-text">{pct}%</p>
+          <div className="streak-result-row">
+            <div className="streak-result-box"><div className="streak-result-label">この回の最高連続</div><div className="streak-result-val" style={{color:"#ef4444"}}>🔥 {streak}問</div></div>
+            <div className="streak-result-box"><div className="streak-result-label">歴代最高連続</div><div className="streak-result-val" style={{color:"#f59f00"}}>🏆 {best}問</div></div>
+          </div>
+          <div style={{display:"flex",gap:"8px",marginTop:"16px"}}>
+            <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #047857"}} onClick={startQuiz}>もう一度</button>
+            <button className="start-btn" style={{background:"#868e96",color:"#fff",boxShadow:"0 4px 0 #495057"}} onClick={()=>setMode("setup")}>設定へ</button>
+          </div>
+          {reviewBank.length>0&&(
+            <button className="start-btn"
+              style={{background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",
+                boxShadow:"0 4px 0 #991b1b",marginTop:"8px",width:"100%"}}
+              onClick={startReview}>{"続けて復習する 📚 ("}{reviewBank.length}{"問)"}</button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!problem) return null;
+
+  return (
+    <div className="rika-root">
+      {celeb && (
+        <div className="celeb-overlay">
+          <div className="celeb-box">
+            <div className="celeb-emoji">🎉</div>
+            <div className="celeb-text" style={{color:"#065f46"}}>せいかい！</div>
+            <div className="celeb-stars">{randomStars(5)}</div>
+            {streak>=3&&<div className="celeb-streak" style={{background:"#10b981"}}>🔥 {streak}れんぞく！</div>}
+            {streak===best&&streak>1&&<div className="celeb-streak" style={{background:"#f59f00",marginTop:"6px"}}>🏆 新記録！</div>}
+          </div>
+        </div>
+      )}
+      <div className="quiz-header">
+        <button className="back-btn" onClick={()=>setMode("setup")}>← もどる</button>
+        <span className="q-label">Q{current+1}<span className="q-total">/{problems.length}</span></span>
+        <span className="streak-badge">🔥{streak}</span>
+      </div>
+      <div className="progress-bar-bg">
+        <div className="progress-fill" style={{background:problem.color,width:`${progress}%`}}/>
+      </div>
+      <div className="problem-card" style={{borderTop:`5px solid ${problem.color}`}}>
+        <div style={{fontWeight:"900",fontSize:"12px",color:problem.color,marginBottom:"6px"}}>{problem.title}</div>
+        <div className="word-display">{problem.word}</div>
+        {problem.sentence && (
+          <div style={{textAlign:"center",fontSize:"13px",color:"#6b7280",marginBottom:"8px"}}>
+            例：{problem.sentence}
+          </div>
+        )}
+        <div style={{fontSize:"15px",fontWeight:"bold",lineHeight:"1.8",marginBottom:"12px"}}>{problem.question}</div>
+        <SelectAnswer problem={problem} checked={checked} userAnswer={userAnswer} onAnswer={handleAnswer}/>
+      </div>
+      {checked && (
+        <>
+          <div style={{textAlign:"center",fontSize:"18px",fontWeight:"900",color:isCorrect?"#10b981":"#ef4444"}}>
+            {isCorrect?"⭕ 正解！":"❌ 不正解"}
+          </div>
+          <div className="explanation-card">
+            <div style={{fontWeight:"900",marginBottom:"4px",fontSize:"12px",color:"#92400e"}}>💡 解説</div>
+            {problem.explanation.split("\n").map((line,i) => <div key={i}>{line}</div>)}
+          </div>
+          <button className="next-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #047857"}} onClick={nextQuestion}>
+            {current+1>=problems.length?"結果を見る 🎉":"つぎへ →"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
