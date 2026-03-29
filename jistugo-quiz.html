@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>文法クイズ</title>
+<title>自立語・付属語クイズ</title>
 <link rel="stylesheet" href="common.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -190,44 +190,31 @@ const TAIGEN_YOUGEN_BANK = [
 
 const ALL_TAIGEN_YOUGEN = ["用言（動詞）","用言（形容詞）","用言（形容動詞）","体言（名詞）"];
 // ── 助動詞の意味 ────────────────────────────────────────────
-// [文中の助動詞部分, 意味, 解説]
 const JODOSHI_IMI_BANK = [
-  // れる・られる
   ["先生に呼ば「れる」","受身","「れる・られる」が受身の意味→〜される・〜されること。"],
   ["一人で歩け「る」","可能","「れる・られる」が可能の意味→〜できること。"],
   ["故郷が思い出さ「れる」","自発","「れる・られる」が自発の意味→自然にそうなること。"],
   ["先生が来ら「れる」","尊敬","「れる・られる」が尊敬の意味→相手を敬う表現。"],
-  // せる・させる
   ["弟に荷物を持た「せる」","使役","「せる・させる」は使役→〜させること。"],
   ["子どもを先に帰ら「せる」","使役","「させる」は使役の助動詞。〜させることを表す。"],
-  // ない
   ["今日は行か「ない」","打ち消し","「ない」は打ち消しの助動詞→〜しないという否定。"],
   ["雨は降ら「ない」","打ち消し","「ない」が動詞に付いて打ち消しを表す。"],
-  // た
   ["昨日、映画を見「た」","過去","「た」が過去の出来事を表す→〜した。"],
   ["宿題がやっと終わっ「た」","完了","「た」が動作の完了を表す→〜し終わった。"],
-  // う・よう
   ["明日は晴れる「だろう」","推量","「う・よう・だろう」が推量の意味→〜だろう・〜かもしれない。"],
   ["一緒に行こ「う」","意志","「う・よう」が意志の意味→〜しようという気持ち。"],
-  // ます
   ["毎朝ジョギングをし「ます」","丁寧","「ます」は丁寧の助動詞→丁寧な言い方にする。"],
   ["明日また来「ます」","丁寧","「ます」を付けて丁寧な表現にする。"],
-  // だ・です
   ["今日は晴れ「だ」","断定","「だ・です」は断定の助動詞→〜である・〜だと断言する。"],
-  // そうだ（様態・伝聞）
   ["雨が降り「そうだ」","様態","「〜そうだ」が様態→見た目・様子からの判断。"],
   ["ニュースによると台風が来る「そうだ」","伝聞","「〜そうだ」が伝聞→人から聞いた情報。"],
-  // らしい
   ["彼女は風邪を引いた「らしい」","推定","「らしい」は推定の助動詞→根拠をもとに〜と思われる。"],
-  // ようだ・みたいだ
   ["まるで夢の「ようだ」","比況","「ようだ・みたいだ」は比況→〜のようだ・〜に似ている。"],
   ["空が鏡の「みたいだ」","比況","「みたいだ」は比況の助動詞。「ようだ」と同じ意味。"],
 ];
-
 const ALL_JODOSHI_IMI = ["受身","可能","自発","尊敬","使役","打ち消し","過去","完了","推量","意志","丁寧","断定","様態","伝聞","推定","比況"];
 
 // ── 助動詞の活用形 ────────────────────────────────────────
-// [文脈の助動詞部分, 活用形, 解説]
 const JODOSHI_KEI_BANK = [
   ["呼ば「れ」（ます）","連用形","「れる」の連用形→「れ」。「〜ます」に続く形。"],
   ["走ら「せ」（た）","連用形","「せる」の連用形→「せ」。「〜た」に続く形。"],
@@ -240,13 +227,10 @@ const JODOSHI_KEI_BANK = [
   ["走ら「なかっ」（た）","連用形","「ない」の連用形→「なかっ」（音便）。「〜た」に続く。"],
   ["来（「ない」）","終止形","「ない」の終止形→言い切りの形。"],
 ];
-
 const ALL_JODOSHI_KEI = ["未然形","連用形","終止形","連体形","仮定形","命令形"];
 
 // ── 助詞の種類 ────────────────────────────────────────────
-// [文中の助詞部分, 種類, 解説]
 const JOSHI_BANK = [
-  // 格助詞
   ["私「が」行く","格助詞","「が」は主語を表す格助詞。名詞と述語の関係を示す。"],
   ["本「を」読む","格助詞","「を」は目的語を表す格助詞。動作の対象を示す。"],
   ["学校「に」行く","格助詞","「に」は場所・方向・時間を表す格助詞。"],
@@ -255,14 +239,12 @@ const JOSHI_BANK = [
   ["駅「から」歩く","格助詞","「から」は起点・原因を表す格助詞。"],
   ["私「の」本","格助詞","「の」は所有・修飾を表す格助詞。"],
   ["バス「で」行く","格助詞","「で」は手段・場所を表す格助詞。"],
-  // 接続助詞
   ["雨が降っ「ても」行く","接続助詞","「ても」は逆接の接続助詞→〜しても・それでも。"],
   ["急げ「ば」間に合う","接続助詞","「ば」は条件・仮定を表す接続助詞。"],
   ["勉強し「て」から遊ぶ","接続助詞","「て」は動作の継続・前後関係を表す接続助詞。"],
   ["暑い「から」水を飲む","接続助詞","「から」は原因・理由を表す接続助詞。"],
   ["練習した「ので」上手くなった","接続助詞","「ので」は原因・理由を表す接続助詞。「から」より客観的。"],
   ["走り「ながら」話す","接続助詞","「ながら」は同時進行を表す接続助詞。"],
-  // 副助詞
   ["私「は」行く","副助詞","「は」は主題を表す副助詞→他と区別して取り立てる。"],
   ["これ「も」いい","副助詞","「も」は添加・並立を表す副助詞。"],
   ["彼女「だけ」が来た","副助詞","「だけ」は限定を表す副助詞→それのみ・それに限って。"],
@@ -270,13 +252,11 @@ const JOSHI_BANK = [
   ["宿題「さえ」しない","副助詞","「さえ」は極端な例を示す副助詞→最低限のことも〜ない。"],
   ["十人「ほど」来た","副助詞","「ほど」は程度・おおよその数を表す副助詞。"],
   ["一冊「しか」ない","副助詞","「しか」は打ち消しと呼応して限定を表す副助詞。"],
-  // 終助詞
   ["明日晴れるといい「ね」","終助詞","「ね」は念押し・同意を求める終助詞→文末に付く。"],
   ["早く来い「よ」","終助詞","「よ」は強調・命令・断定を表す終助詞。"],
   ["もう帰る「の」","終助詞","「の」は疑問・確認を表す終助詞（主に女性語）。"],
   ["きれいだ「な」","終助詞","「な」は感動・詠嘆を表す終助詞。"],
 ];
-
 const ALL_JOSHI = ["格助詞","接続助詞","副助詞","終助詞"];
 
 
@@ -408,48 +388,30 @@ function pickProblems(diff, total) {
     JODOSHI_IMI_BANK.forEach(([wordCtx, ans, exp]) => {
       const wrongs = shuffle(ALL_JODOSHI_IMI.filter(k => k !== ans)).slice(0, 3);
       const opts = shuffle([ans, ...wrongs]);
-      pool.push({
-        color:"#0891b2", title:"助動詞の意味",
-        word: wordCtx, sentence: null,
-        question:`「${wordCtx}」のカギ括弧の助動詞はどの意味ですか？`,
-        options: opts, answer: opts.indexOf(ans),
-        explanation:`【${ans}】
-${exp}`,
-      });
+      pool.push({color:"#b45309",title:"助動詞の意味",word:wordCtx,sentence:null,
+        question:`カギ括弧の助動詞はどの意味ですか？`,
+        options:opts,answer:opts.indexOf(ans),explanation:`【${ans}】\n${exp}`});
     });
   }
-
   if (diff === "jodoshi_kei" || diff === "mix") {
     JODOSHI_KEI_BANK.forEach(([wordCtx, ans, exp]) => {
       const wrongs = shuffle(ALL_JODOSHI_KEI.filter(k => k !== ans)).slice(0, 3);
       const opts = shuffle([ans, ...wrongs]);
-      pool.push({
-        color:"#9333ea", title:"助動詞の活用形",
-        word: wordCtx, sentence: null,
-        question:`「${wordCtx}」のカギ括弧の助動詞の活用形はどれですか？`,
-        options: opts, answer: opts.indexOf(ans),
-        explanation:`【${ans}】
-${exp}`,
-      });
+      pool.push({color:"#92400e",title:"助動詞の活用形",word:wordCtx,sentence:null,
+        question:`カギ括弧の助動詞の活用形はどれですか？`,
+        options:opts,answer:opts.indexOf(ans),explanation:`【${ans}】\n${exp}`});
     });
   }
-
   if (diff === "joshi" || diff === "mix") {
     JOSHI_BANK.forEach(([wordCtx, ans, exp]) => {
       const wrongs = shuffle(ALL_JOSHI.filter(k => k !== ans)).slice(0, 3);
       const opts = shuffle([ans, ...wrongs]);
-      pool.push({
-        color:"#d97706", title:"助詞の種類",
-        word: wordCtx, sentence: null,
-        question:`「${wordCtx}」のカギ括弧の助詞の種類はどれですか？`,
-        options: opts, answer: opts.indexOf(ans),
-        explanation:`【${ans}】
-${exp}`,
-      });
+      pool.push({color:"#d97706",title:"助詞の種類",word:wordCtx,sentence:null,
+        question:`カギ括弧の助詞の種類はどれですか？`,
+        options:opts,answer:opts.indexOf(ans),explanation:`【${ans}】\n${exp}`});
     });
   }
-
-  const shuffled = shuffle(pool);
+    const shuffled = shuffle(pool);
   const result = [];
   const used = new Set();
   while (result.length < total) {
@@ -600,7 +562,7 @@ function App() {
           <a href="https://shoi141.github.io/quiz-portal/" style={{color:"#adb5bd",textDecoration:"none"}}>🏠 教科トップ</a>
         </div>
         <div className="setup-emoji">📖</div>
-        <h1 className="setup-title" style={{color:"#065f46"}}>文法クイズ</h1>
+        <h1 className="setup-title" style={{color:"#065f46"}}>自立語・付属語クイズ</h1>
         <p className="setup-sub">品詞・活用形・助動詞・助詞（中学入試レベル）</p>
         <div style={{marginBottom:"16px"}}>
           <button onClick={()=>{if(reviewBank.length>0)startReview();}}
