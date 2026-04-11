@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ことわざ・慣用句クイズ</title>
+<link rel="stylesheet" href="common.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+body{background:#faf5ff;}
+.rika-root{min-height:100vh;background:#faf5ff;padding:12px;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;}
+.select-grid{display:flex;flex-direction:column;gap:8px;}
+.select-btn{width:100%;padding:13px 16px;border:2px solid #e5e7eb;border-radius:14px;background:#fff;cursor:pointer;font-size:14px;font-weight:bold;text-align:left;font-family:inherit;}
+.select-btn.show-correct{background:#d1fae5;border-color:#10b981;color:#065f46;}
+.select-btn.wrong{background:#fee2e2;border-color:#ef4444;color:#991b1b;opacity:0.7;}
+.explanation-card{background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:12px 14px;font-size:13px;color:#78350f;line-height:1.9;}
+.diff-btn-row{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.diff-card-btn{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;cursor:pointer;text-align:left;border:2px solid transparent;font-family:inherit;background:#f9fafb;}
+.diff-card-btn .diff-name{font-weight:900;font-size:15px;}
+.diff-card-btn .diff-desc{font-size:11px;color:#6b7280;margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function randomStars(n){return Array.from({length:n},()=>["⭐","🌟","✨"][randInt(0,2)]).join(" ");}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const KOTOWAZA_BANK = [
+  ["「失敗しても諦めず何度でも挑戦する」という意味のことわざは？","七転び八起き",["石の上にも三年","継続は力なり","負けるが勝ち"],"七転び八起き：何度失敗しても諦めずに立ち上がる意味。英語の「Fall seven times, stand up eight」に対応。"],
+  ["「少しの努力の積み重ねが大きな成果につながる」という意味のことわざは？","塵も積もれば山となる",["急がば回れ","一石二鳥","棚からぼたもち"],"塵も積もれば山となる：小さなことでも積み重なると大きくなるという意味。"],
+  ["「急ぐときほど、安全な方法をとるべき」という意味のことわざは？","急がば回れ",["早起きは三文の徳","石橋をたたいて渡る","七転び八起き"],"急がば回れ：急いでいるときこそ遠回りでも確実な道を行くべきという意味。"],
+  ["「一つのことで二つの利益を得る」という意味のことわざは？","一石二鳥",["一挙両得","七転び八起き","棚からぼたもち"],"一石二鳥：一つの行動で二つの利益を得ること。英語の「kill two birds with one stone」と同じ。"],
+  ["「うわさをすると、その人が現れる」という意味のことわざは？","噂をすれば影がさす",["灯台もと暗し","目の上のたんこぶ","対岸の火事"],"噂をすれば影がさす：話題にしていると、その人がちょうど現れること。"],
+  ["「身近にあることほど気づきにくい」という意味のことわざは？","灯台もと暗し",["隣の芝は青い","対岸の火事","猫に小判"],"灯台もと暗し：灯台の真下は光が届かない→近すぎて見えないことがあるという意味。"],
+  ["「全力で努力するしかない場面」を表す慣用句で、「背水の—」の空欄は？","陣",["壁","川","岸"],"背水の陣：川を背にして退路を断って戦うこと→必死の覚悟で臨む状況を指す。"],
+  ["「うまくいきそうな話が突然だめになる」ことを表すことわざは？","棚からぼたもち",["濡れ手で粟","鬼の目にも涙","捕らぬ狸の皮算用"],"棚からぼたもち：思いがけない幸運が舞い込むこと。本来はラッキーな意味。"],
+  ["「弱い者が強い者に逆らっても無意味」という意味のことわざは？","蟷螂の斧",["猫に小判","馬の耳に念仏","のれんに腕押し"],"蟷螂（カマキリ）が斧（前足）で大きな車に向かうが無駄という意味。"],
+  ["「どんな場所でも生活できる」という意味のことわざは？","住めば都",["石の上にも三年","七転び八起き","急がば回れ"],"住めば都：どんな場所でも住み慣れれば居心地よくなるという意味。"],
+  ["「絶好の機会を逃さず実行せよ」という意味の慣用句は？","鉄は熱いうちに打て",["石橋をたたいて渡る","急がば回れ","備えあれば憂いなし"],"鉄は熱いうちに打て：熱い鉄は柔らかく加工しやすい→好機を逃すなという意味。"],
+  ["「準備をしておけば心配がない」という意味のことわざは？","備えあれば憂いなし",["急がば回れ","石橋をたたいて渡る","転ばぬ先の杖"],"備えあれば憂いなし＝転ばぬ先の杖：事前の準備が大切だという意味。"],
+  ["「勝負に勝っても得をしない場合がある」という意味のことわざは？","負けるが勝ち",["勝てば官軍","一石二鳥","七転び八起き"],"負けるが勝ち：あえて引き下がることが長い目で見ると得策という意味。"],
+  ["「一度始めたことは最後まで続けることが大切」という意味のことわざは？","継続は力なり",["七転び八起き","塵も積もれば山となる","一期一会"],"継続は力なり：続けることによって力がつくという意味。習慣の大切さを説く。"],
+  ["「一生に一度しかない出会いを大切にしよう」という意味のことわざは？","一期一会",["縁は異なもの","袖振り合うも他生の縁","七転び八起き"],"一期一会：茶道の心から生まれた言葉。この出会いは二度とないという意味。"],
+];
+</script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const STORAGE_KEY = "kotowaza_best";
+const QUIZ_KEY = "rv_kotowaza";
+const Q_OPTIONS = [5, 10, 15, 20];
+const BTN = "linear-gradient(135deg,#581c87,#3b0764)";
+const BANKS={mix:{bank:KOTOWAZA_BANK,color:"#581c87",title:"ことわざ・慣用句"}};
+function pickProblems(diff, total) {
+  let pool = [];
+  const targets = diff === "mix" ? Object.values(BANKS) : [BANKS[diff]];
+  targets.forEach(({ bank, color, title }) => {
+    bank.forEach(([q, ans, wrongs, exp]) => {
+      const opts = shuffle([ans, ...wrongs.slice(0,3)]);
+      pool.push({ color, title, question:q, options:opts, answer:opts.indexOf(ans),
+        explanation:`【正解】${ans}
+${exp}` });
+    });
+  });
+  const shuffled = shuffle(pool);
+  const result=[]; const used=new Set();
+  while(result.length<total){
+    const idx=Math.floor(Math.random()*shuffled.length);
+    if(!used.has(idx)||shuffled.length<total){used.add(idx);result.push({...shuffled[idx]});}
+  }
+  return result;
+}
+function SelectAnswer({problem,checked,userAnswer,onAnswer}){
+  return(<div className="select-grid">{problem.options.map((opt,i)=>{
+    let cls="select-btn";
+    if(checked){if(i===problem.answer)cls+=" show-correct";else if(i===userAnswer)cls+=" wrong";}
+    return(<button key={i} className={cls} onClick={()=>!checked&&onAnswer(i)}>
+      <span style={{color:"#6b7280",marginRight:"8px",fontWeight:"normal"}}>{"①②③④"[i]}</span>{opt}
+    </button>);
+  })}</div>);
+}
+function App(){
+  const [mode,setMode]=useState("setup");
+  const [reviewBank,setReviewBank]=useState([]);
+  const [diff,setDiff]=useState("mix");
+  const [totalQ,setTotalQ]=useState(10);
+  const [problems,setProblems]=useState([]);
+  const [current,setCurrent]=useState(0);
+  const [score,setScore]=useState(0);
+  const [streak,setStreak]=useState(0);
+  const [best,setBest]=useState(0);
+  const [checked,setChecked]=useState(false);
+  const [userAnswer,setUserAnswer]=useState(null);
+  const [celeb,setCeleb]=useState(false);
+  const [isCorrect,setIsCorrect]=useState(false);
+  useEffect(()=>{
+    try{const s=localStorage.getItem("kotowaza_best");if(s)setBest(parseInt(s)||0);}catch(_){}
+    setReviewBank(JSON.parse(localStorage.getItem("rv_kotowaza")||'[]'));
+  },[]);
+  const saveBest=v=>{try{localStorage.setItem("kotowaza_best",String(v));}catch(_){}};
+  const startReview=()=>{
+    const bank=JSON.parse(localStorage.getItem("rv_kotowaza")||'[]');
+    setReviewBank(bank);
+    if(bank.length===0){setMode("setup");return;}
+    const r=bank.map(p=>{const c=p.options[p.answer];const opts=shuffle([...p.options]);return{...p,options:opts,answer:opts.indexOf(c)};});
+    setProblems(r);setCurrent(0);setScore(0);setStreak(0);setChecked(false);setUserAnswer(null);setCeleb(false);setMode("review");
+  };
+  const startQuiz=()=>{
+    setProblems(pickProblems(diff,totalQ));setCurrent(0);setScore(0);setStreak(0);
+    setChecked(false);setUserAnswer(null);setCeleb(false);setMode("quiz");
+  };
+  const problem=problems[current]||null;
+  const handleAnswer=ans=>{
+    if(checked)return;
+    setUserAnswer(ans);setChecked(true);
+    const ok=ans===problem.answer;setIsCorrect(ok);
+    if(ok){
+      setScore(s=>s+1);const ns=streak+1;setStreak(ns);
+      if(ns>best){setBest(ns);saveBest(ns);}
+      setCeleb(true);setTimeout(()=>setCeleb(false),1800);
+      try{const b=JSON.parse(localStorage.getItem("rv_kotowaza")||'[]');const id=problem.title+'|'+problem.question;const i=b.findIndex(x=>x._id===id);if(i>=0){b[i].ok=(b[i].ok||0)+1;if(b[i].ok>=5)b.splice(i,1);localStorage.setItem("rv_kotowaza",JSON.stringify(b));}setReviewBank([...b]);}catch(_){}
+    }else{
+      setStreak(0);
+      try{const b=JSON.parse(localStorage.getItem("rv_kotowaza")||'[]');const id=problem.title+'|'+problem.question;if(!b.find(x=>x._id===id)){const s={...problem,_id:id,ok:0};b.push(s);localStorage.setItem("rv_kotowaza",JSON.stringify(b));}setReviewBank([...b]);}catch(_){}
+    }
+  };
+  const nextQuestion=()=>{
+    const _end=current+1>=problems.length;
+    if(_end&&mode==="review"){const b=JSON.parse(localStorage.getItem("rv_kotowaza")||'[]');setReviewBank([...b]);if(b.length>0){startReview();}else{setMode("graduated");}return;}
+    if(_end){setMode("result");return;}
+    setCurrent(c=>c+1);setChecked(false);setUserAnswer(null);setCeleb(false);
+  };
+  const progress=problem?(current/problems.length)*100:0;
+  const DIFF_OPTIONS=[{key:"mix",emoji:"📖",name:"全問ミックス",desc:"ことわざ・慣用句・四字熟語をランダム出題"}];
+  if(mode==="graduated")return(<div className="setup-wrap" style={{background:"#faf5ff"}}><div className="setup-card"><div className="setup-emoji">🎓</div><h2 className="setup-title" style={{color:"#3b0764"}}> 復習バンク卒業！</h2><div style={{background:"#f3e8ff",borderRadius:"14px",padding:"16px",marginBottom:"16px",fontSize:"13px",color:"#3b0764",lineHeight:"1.8"}}>🌟 マスター達成！</div><button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #3b0764"}} onClick={()=>setMode("setup")}>もどる</button></div></div>);
+  if(mode==="setup")return(
+    <div className="setup-wrap" style={{background:"#faf5ff"}}>
+      <div className="setup-card">
+        <div style={{textAlign:"center",marginBottom:"12px",fontSize:"12px"}}>
+          <a href="https://shoi141.github.io/kokugo-quiz/" style={{color:"#adb5bd",textDecoration:"none"}}>← 国語トップ</a>
+          {"　|　"}
+          <a href="https://shoi141.github.io/quiz-portal/" style={{color:"#adb5bd",textDecoration:"none"}}>🏠 教科トップ</a>
+        </div>
+        <div className="setup-emoji">📖</div>
+        <h1 className="setup-title" style={{color:"#3b0764"}}>ことわざ・慣用句クイズ</h1>
+        <p className="setup-sub">よく出ることわざ・慣用句を覚えよう！</p>
+        <div style={{marginBottom:"16px"}}>
+          <button onClick={()=>{if(reviewBank.length>0)startReview();}} style={{width:"100%",padding:"14px 16px",borderRadius:"14px",cursor:reviewBank.length>0?"pointer":"default",border:reviewBank.length>0?"2px solid #ef4444":"2px solid #e5e7eb",background:reviewBank.length>0?"#fef2f2":"#f9fafb",display:"flex",alignItems:"center",justifyContent:"space-between",fontFamily:"inherit",opacity:reviewBank.length===0?0.45:1}}>
+            <div style={{textAlign:"left"}}><div style={{fontWeight:"900",fontSize:"15px",color:reviewBank.length>0?"#b91c1c":"#374151"}}>📚 復習モード</div>{reviewBank.length>0&&<div style={{fontSize:"11px",color:"#ef4444",marginTop:"2px"}}>タップして今すぐ開始！</div>}</div>
+            <span style={{background:reviewBank.length>0?"#ef4444":"#d1d5db",color:"#fff",borderRadius:"99px",padding:"4px 12px",fontSize:"13px",fontWeight:"bold"}}>{reviewBank.length>0?reviewBank.length+"問":"なし"}</span>
+          </button>
+          {reviewBank.length===0&&<div style={{fontSize:"11px",color:"#9ca3af",textAlign:"center",marginTop:"4px"}}>間違えた問題が溜まるとここで復習できます</div>}
+        </div>
+        {best>0&&<div className="best-badge" style={{background:"#f3e8ff",border:"1.5px solid #581c87",color:"#3b0764"}}>🏆 最高連続記録：<strong>{best}問</strong></div>}
+        <div className="qcount-section">分野を選ぶ</div>
+        <div className="diff-btn-row">
+          {DIFF_OPTIONS.map(d=>(
+            <button key={d.key} className="diff-card-btn" style={{background:diff===d.key?"#f3e8ff":"#f9fafb",border:diff===d.key?"2px solid #581c87":"2px solid #e5e7eb",boxShadow:diff===d.key?"0 3px 0 #581c87":"none"}} onClick={()=>setDiff(d.key)}>
+              <span style={{fontSize:"22px"}}>{d.emoji}</span>
+              <div><div className="diff-name" style={{color:diff===d.key?"#3b0764":"#1f2937"}}>{d.name}</div><div className="diff-desc">{d.desc}</div></div>
+              {diff===d.key&&<span style={{marginLeft:"auto",fontSize:"18px"}}>✅</span>}
+            </button>
+          ))}
+        </div>
+        <div className="qcount-section">何問やる？</div>
+        <div className="qcount-grid">
+          {Q_OPTIONS.map(n=>(<button key={n} className="qcount-btn" style={{border:totalQ===n?"2px solid #581c87":"2px solid #dee2e6",background:totalQ===n?"#581c87":"#f8f9fa",color:totalQ===n?"#fff":"#495057",boxShadow:totalQ===n?"0 3px 0 #3b0764":"none"}} onClick={()=>setTotalQ(n)}>{n}問</button>))}
+        </div>
+        <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #3b0764"}} onClick={startQuiz}>スタート！ 🚀</button>
+      </div>
+    </div>
+  );
+  if(mode==="result"){
+    const pct=Math.round((score/problems.length)*100);
+    return(<div className="setup-wrap" style={{background:"#faf5ff"}}><div className="setup-card">
+      <div className="setup-emoji">{pct===100?"🏆":pct>=70?"🎉":"💪"}</div>
+      <h2 className="setup-title" style={{color:"#3b0764"}}> おわり！</h2>
+      <p className="result-score">{problems.length}問中 <span className="result-big" style={{color:"#581c87"}}>{score}</span> 問正解</p>
+      <div className="pct-bar-bg" style={{background:"#f3e8ff"}}><div className="pct-bar-fill" style={{background:BTN,width:`${pct}%`}}/></div>
+      <p className="pct-text">{pct}%</p>
+      <div className="streak-result-row">
+        <div className="streak-result-box"><div className="streak-result-label">この回の最高連続</div><div className="streak-result-val" style={{color:"#ef4444"}}>🔥 {streak}問</div></div>
+        <div className="streak-result-box"><div className="streak-result-label">歴代最高連続</div><div className="streak-result-val" style={{color:"#f59f00"}}>🏆 {best}問</div></div>
+      </div>
+      <div style={{display:"flex",gap:"8px",marginTop:"16px"}}>
+        <button className="start-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #3b0764"}} onClick={startQuiz}>もう一度</button>
+        <button className="start-btn" style={{background:"#868e96",color:"#fff",boxShadow:"0 4px 0 #495057"}} onClick={()=>setMode("setup")}>設定へ</button>
+      </div>
+      {reviewBank.length>0&&<button className="start-btn" style={{background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",boxShadow:"0 4px 0 #991b1b",marginTop:"8px",width:"100%"}} onClick={startReview}>続けて復習する 📚 ({reviewBank.length}問)</button>}
+    </div></div>);
+  }
+  if(!problem)return null;
+  return(
+    <div className="rika-root">
+      {celeb&&(<div className="celeb-overlay"><div className="celeb-box">
+        <div className="celeb-emoji">🎉</div>
+        <div className="celeb-text" style={{color:"#3b0764"}} >せいかい！</div>
+        <div className="celeb-stars">{randomStars(5)}</div>
+        {streak>=3&&<div className="celeb-streak" style={{background:"#581c87"}} >🔥 {streak}れんぞく！</div>}
+        {streak===best&&streak>1&&<div className="celeb-streak" style={{background:"#f59f00",marginTop:"6px"}}>🏆 新記録！</div>}
+      </div></div>)}
+      <div className="quiz-header">
+        <button className="back-btn" onClick={()=>setMode("setup")}>← もどる</button>
+        <span className="q-label">Q{current+1}<span className="q-total">/{problems.length}</span></span>
+        <span className="streak-badge">🔥{streak}</span>
+      </div>
+      <div className="progress-bar-bg"><div className="progress-fill" style={{background:problem.color,width:`${progress}%`}}/></div>
+      <div className="problem-card" style={{borderTop:`5px solid ${problem.color}`}}>
+        <div style={{fontWeight:"900",fontSize:"12px",color:problem.color,marginBottom:"8px"}}>{problem.title}</div>
+        <div style={{fontSize:"16px",fontWeight:"bold",lineHeight:"1.8",marginBottom:"14px"}}>{problem.question}</div>
+        <SelectAnswer problem={problem} checked={checked} userAnswer={userAnswer} onAnswer={handleAnswer}/>
+      </div>
+      {checked&&(<>
+        <div style={{textAlign:"center",fontSize:"18px",fontWeight:"900",color:isCorrect?"#10b981":"#ef4444"}}>{isCorrect?"⭕ 正解！":"❌ 不正解"}</div>
+        <div className="explanation-card">
+          <div style={{fontWeight:"900",marginBottom:"4px",fontSize:"12px",color:"#92400e"}}>💡 解説</div>
+          {problem.explanation.split("\n").map((line,i)=><div key={i}>{line}</div>)}
+        </div>
+        <button className="next-btn" style={{background:BTN,color:"#fff",boxShadow:"0 4px 0 #3b0764"}} onClick={nextQuestion}>{current+1>=problems.length?"結果を見る 🎉":"つぎへ →"}</button>
+      </>)}
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
